@@ -35,48 +35,26 @@ class Inference
     // complete lik
     double getPobs1(double l, double e);
     double getPobs2(double g, double l, double e1, double e2);
-    double computeI2(const array<double,7>& param);
-    double computeI2_0(const array<double,2>& param);
-    double computeI2_1(const array<double,2>& param);
-    double computeI2_2(const array<double,3>& param);
-    double likRepTot(int rep, vector<double>& param, array<double,4>& error);
-    double likRepTot_0(int rep, vector<double>& param, double error);
-    double likRepTot_1(int rep, vector<double>& param, double error);
-    double likRepTot_2(int rep, vector<double>& param, array<double,2>& error);
-    double verif(vector<double> param);
-    double logLik(const array<double,7>& param);
-    double logLik_0(const array<double,2>& param);
-    double logLik_1(const array<double,2>& param);
-    double logLik_2(const array<double,3>& param);
-    void optim(int seed);
-    void optim_0(int seed);
-    void optim_1(int seed);
-    void optim_2(int seed);
+    double computeI2(double N0, double l0, double i1, double l1, double g2, double l2, vector<double> eps);
+    double likRepTot(int rep, double N0, double l0, double i1, double l1, double i2, double g2, double l2,
+    vector<double> eps);
+    double verif(double l0, double l1, double g2, double l2, vector<double> eps);
+    double logLik(double N0, double l0, double i1, double l1, double g2, double l2, vector<double> eps);
+    static bool anyAbove(vector<double> start, vector<double> upper);
+    void optim7(int seed);
+    void optim7(int seed, array<double,7>& start);
+    void optim9(int seed);
+    void optim9(int seed, array<double,9>& start);
 
     // post-optim
     void writeParam(string seed, string file);
-    // void writeParam(string seed, string file, double N0, double l0, double i1, double l1, double g2, double l2,
-    // double e);
-    // void writeParam_2(string seed, string file, double g2, double l2, double e);
     void assignCat(string mat_file);
-    void computeProbaCat(string file, double N0, double l0, double i1, double l1, double i2, double g2, double l2,
-    double eps0, double eps1, double eps2);
-    void computeProbaPattern(string file, double N0, double l0, double i1, double l1, double i2, double g2, double l2,
-    double eps0, double eps1, double eps2);
+    double nb0(double N0, double l0, double eps);
+    double nb1(double i1, double l1, double eps);
+    double nb2(double i2, double g2, double l2, double eps);
+    void printPangenomeCompo();
 
-    // others
-    double nb0(vector<double> par);
-    double nb1(vector<double> par);
-    double nb2(vector<double> par);
-    double sumGains(int st, double g2);
-    double expectedGains(double g2);
-    double expectedTime1_old(int rep, double l1, double eps1);
-    double expectedTime1(int rep, double l1, double eps1);
-    double expectedTime2(int rep, double g2, double l2, double eps2);
-    void expectedTime(string file, double l1, double g2, double l2, double eps1, double eps2);
-    vector<double> expectedTime2_times();
-    vector<double> expectedTime2_aux(int rep, double g2, double l2, double eps2);
-    void expectedTime2_store(string file, double g2, double l2, double eps2);
+
 
     private:
 
@@ -97,7 +75,13 @@ class Inference
     double meanGenes;
     double H;
     double L;
-    vector<double> MLEpar;
-    vector<double> MLEerr;
+    double MLEN0;
+    double MLEl0;
+    double MLEi1;
+    double MLEl1;
+    double MLEi2;
+    double MLEg2;
+    double MLEl2;
+    vector<double> MLEeps;
     double MLElik;
 };

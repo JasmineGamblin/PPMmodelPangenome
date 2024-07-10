@@ -6,51 +6,52 @@
 using namespace std;
 
 
-int main()
+int main(int argc, char* argv[])
 {
-
+    
+    time_t debut = time(NULL);
+    
     // test
-    string tree_file = "/home/jasminegamblin/Thèse/Ecoli_Refseq/subtree_600.nwk";
-    RecTree tree = RecTree::readTree(tree_file);
+    RecTree tree = RecTree::readTree(argv[2]);
     cout << "tree OK" << endl;
 
     // define alignment
-    string mat_file = "/home/jasminegamblin/Thèse/Ecoli_Refseq/rep_cat2_cpp.txt";
-    PAmatrix mat(mat_file);
+    PAmatrix mat(argv[3]);
     cout << "matrix OK, size " << mat.getMatrix().size() << "x" << mat.getMatrix()[0].size() << endl;
 
     // build Inference object
     Inference inf(tree, mat);
-    cout << "inference init OK" << endl;
-    inf.optim_2(1);
-    // cout << inf.verif({10,0.2,10,2,5,10,20,0.01}) << endl;
-    // cout << inf.verif({10,10,2,5,10,20,0.01,0.005,0.008,0.01}) << endl;
-    // cout << inf.nb1({36839, 60.8, 0.002}) << endl;
-    // cout << inf.nb2({487386, 179, 9584, 0.002}) << endl;
-    cout << "OK!" <<endl;
-
+    cout << "inference initialization OK" << endl;
     
-/*     time_t debut_init = time(NULL);
-    // read tree
-    string tree_file = "../../../EcoliComplete/core_tree_ESCO443_rooted.nwk";
-    RecTree tree = RecTree::readTree(tree_file);
-    cout << "tree OK" << endl;
-
-    // define alignment
-    string mat_file = "../../../EcoliComplete/repartitions_ESCO440_cpp.txt"; // use compressed matrix
-    PAmatrix mat(mat_file);
-    cout << "matrix OK, size " << mat.getMatrix().size() << "x" << mat.getMatrix()[0].size() << endl;
-
-
-    // build Inference object
-    Inference inf(tree, mat);
-    cout << "inference init OK" << endl;
-    time_t debut_calc = time(NULL);
-    inf.optim();
+    // inference
+    if (argv[4] == "7") // 7 or 9 parameters?
+    {
+        if (argv[7] == "0") // fixed or random starting point?
+        {
+            inf.optim7(stoi(argv[1]));
+        } else {
+            array<double,7> start = {stod(argv[7]), stod(argv[8]), stod(argv[9]), stod(argv[10]),
+            stod(argv[11]), stod(argv[12]), stod(argv[13])};
+            inf.optim7(stoi(argv[1]), start);
+        }
+    }
+    else if (argv[4] == "9") {
+        if (argv[7] == "0") // fixed or random starting point?
+        {
+            inf.optim9(stoi(argv[1]));
+        } else {
+            array<double,9> start = {stod(argv[7]), stod(argv[8]), stod(argv[9]), stod(argv[10]),
+            stod(argv[11]), stod(argv[12]), stod(argv[13]), stod(argv[14]), stod(argv[15])};
+            inf.optim9(stoi(argv[1]), start);
+        }
+    } else {
+        cout << "incorrect number of parameters (valid values: 7 or 9)" << endl;
+    }
+    inf.writeParam(argv[1], argv[5]);
+    inf.assignCat(argv[6]);
+    inf.printPangenomeCompo();
+    
     time_t fin = time(NULL);
-    cout << "time to init: " << debut_calc-debut_init << " seconds" << endl;
-    cout << "time to calc: " << fin-debut_calc << " seconds" << endl; */
-    
-
+    cout << "DONE :)    Time duration: " << fin-debut << " seconds" << endl;
     return 0;
 }
