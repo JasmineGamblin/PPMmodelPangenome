@@ -11,11 +11,11 @@ int main(int argc, char* argv[])
     
     time_t debut = time(NULL);
     
-    // test
+    // store tree
     RecTree tree = RecTree::readTree(argv[2]);
     cout << "tree OK" << endl;
 
-    // define alignment
+    // store presence/absence matrix
     PAmatrix mat(argv[3]);
     cout << "matrix OK, size " << mat.getMatrix().size() << "x" << mat.getMatrix()[0].size() << endl;
 
