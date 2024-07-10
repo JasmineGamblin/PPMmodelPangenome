@@ -437,7 +437,7 @@ void Inference::optim7(int seed)
     cout << "Number of function evaluation: " << res.icount << endl;
     cout << "Message: " << res.message << endl;
 }
-void Inference::optim7(int seed, array<double,7>& start)
+void Inference::optim7(array<double,7>& start)
 {
     const size_t nbPar = 7;
     
@@ -519,7 +519,7 @@ void Inference::optim9(int seed)
     cout << "Number of function evaluation: " << res.icount << endl;
     cout << "Message: " << res.message << endl;
 }
-void Inference::optim9(int seed, array<double,9>& start)
+void Inference::optim9(array<double,9>& start)
 {
     const size_t nbPar = 9;
     

@@ -26,23 +26,23 @@ int main(int argc, char* argv[])
     // inference
     if (argv[4] == "7") // 7 or 9 parameters?
     {
-        if (argv[7] == "0") // fixed or random starting point?
+        if (argv[1] != "0") // fixed or random starting point?
         {
             inf.optim7(stoi(argv[1]));
         } else {
             array<double,7> start = {stod(argv[7]), stod(argv[8]), stod(argv[9]), stod(argv[10]),
             stod(argv[11]), stod(argv[12]), stod(argv[13])};
-            inf.optim7(stoi(argv[1]), start);
+            inf.optim7(start);
         }
     }
     else if (argv[4] == "9") {
-        if (argv[7] == "0") // fixed or random starting point?
+        if (argv[1] != "0") // fixed or random starting point?
         {
             inf.optim9(stoi(argv[1]));
         } else {
             array<double,9> start = {stod(argv[7]), stod(argv[8]), stod(argv[9]), stod(argv[10]),
             stod(argv[11]), stod(argv[12]), stod(argv[13]), stod(argv[14]), stod(argv[15])};
-            inf.optim9(stoi(argv[1]), start);
+            inf.optim9(start);
         }
     } else {
         cout << "incorrect number of parameters (valid values: 7 or 9)" << endl;

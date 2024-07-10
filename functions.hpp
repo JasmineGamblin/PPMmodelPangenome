@@ -42,9 +42,9 @@ class Inference
     double logLik(double N0, double l0, double i1, double l1, double g2, double l2, vector<double> eps);
     static bool anyAbove(vector<double> start, vector<double> upper);
     void optim7(int seed);
-    void optim7(int seed, array<double,7>& start);
+    void optim7(array<double,7>& start);
     void optim9(int seed);
-    void optim9(int seed, array<double,9>& start);
+    void optim9(array<double,9>& start);
 
     // post-optim
     void writeParam(string seed, string file);
