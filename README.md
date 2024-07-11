@@ -12,7 +12,7 @@ This repository contains the source code used in the manuscript 'Persistent, Pri
 
 ## Installation and Compilation
 
-### 1.Requirements
+### 1. Requirements
 - GCC (or other C++ compiler)
 - `libtbb` (Intel Threading Building Blocks)
 
@@ -29,13 +29,13 @@ on macOS :
 brew install tbb
 ```
 
-### 2.Clone repository
+### 2. Clone repository
 ```sh
 git clone https://github.com/JasmineGamblin/PPMmodelPangenome
 cd PPMmodelPangenome
 ```
 
-### 3.Compilation
+### 3. Compilation
 ```sh
 make
 ```
