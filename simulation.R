@@ -1,26 +1,32 @@
-# auxiliary functions to simulate the evolution of cat 1 and/or cat 2 genes along a tree
-# input: model parameters + tree (phylo format) or tree parameters + G + root
+# Code used to simulate the PPM model developped by Gamblin, Lambert and Blanquart.
+#
+# Script organization:
+# 1. dependencies
+# 2. functions used for tree simulation
+# 3. functions used for genes simulation
+# 4. post-treatment
+# 5. example of use
+# 
+# This code is distributed under the GNU GPL license.
+# 
+# Author: Jasmine Gamblin
 
 
 
 
 
-################################################################################################################
 ############################################ DEPENDENCIES ######################################################
-################################################################################################################
 
 library(ape)
 library(castor)
-library(data.table) # for repartitions compression
+library(data.table) # for matrix compression
 library(parallel) # for mclapply
 
 
 
 
 
-################################################################################################################
-############################################ TREE ##############################################################
-################################################################################################################
+############################################ TREE SIMULATION ###################################################
 
 # store in Newick format
 newick <- function(tree) {
@@ -56,29 +62,19 @@ make.tree <- function(t, times, leaves, d, b) {
   }
 }
 
-# simulate beta-splitting non-ultrametric tree (cf sim_tree6.R)
-sim.tree <- function(G, d, nu, b=-0.5) {
-  coal_times <- c(0, sort(runif(G-2, 0, d)))
-  tree <- make.tree(0, coal_times, 1:G, d, b)
+# simulate beta-splitting ultrametric tree, with uniformly distributed coalescence times
+sim.tree <- function(nb.leaves, height, b=-0.5) {
+  coal_times <- c(0, sort(runif(nb.leaves-2, 0, height)))
+  tree <- make.tree(0, coal_times, 1:nb.leaves, height, b)
   tree <- read.tree(text = paste(newick(tree),";", sep=""))
-  if (nu>0) {tree$edge.length <- sapply(tree$edge.length, function(l) l*runif(1, min = 1-nu, max = 1+nu))}
   return(tree)
 }
 
-# compute tree height
-depths <- get_all_distances_to_root(tree)
-H <- max(depths)
-
-G <- tree$Nnode + 1
-root <- G + 1
 
 
 
 
-
-################################################################################################################
-############################################ GENES #############################################################
-################################################################################################################
+############################################ GENES SIMULATION ##################################################
 
 # simulate N0 genes
 sim.N0 <- function(N0, e, err = "cst") {
@@ -224,27 +220,6 @@ compute.gain_loss <- function(presence, length, g2, l2) {
   }
   return(p)
 }
-# rep.N2 <- function(g2, l2) {
-#   nodes <- c()
-#   nodes[root] <- 1 # gene is present at root
-#   for (i in seq(length(tree$edge.length))) {
-#     mother <- tree$edge[i,1]
-#     child <- tree$edge[i,2]
-#     branch.length <- tree$edge.length[i]
-#     presence <- compute.gain_loss(nodes[mother], branch.length, g2, l2)
-#     nodes[child] <- presence
-#   }
-#   return(nodes[1:G])
-# }
-# sim.N2 <- function(N2, g2, l2, obs = T) {
-#   rep_N2 <- t(sapply(seq(N2), function(i) rep.N2(g2, l2)))
-#   selec <- which(rowSums(rep_N2) == 0)
-#   if (length(selec) > 0 && obs) {
-#     return(rep_N2[-selec,])
-#   } else {
-#     return(rep_N2)
-#   }
-# }
 
 # choose I2 immigration events
 compute.im2 <- function(length, i2) {
@@ -372,47 +347,80 @@ sim.I2_time <- function(i2, g2, l2, e1, e2, err="cst") {
 
 
 
-################################################################################################################
+
+
 ############################################ POST-TREATMENT ####################################################
-################################################################################################################
 
 # compression
 compress.rep <- function(rep) {
   rep <- as.data.table(rep)
   rep <- rep[, Count := .N, by = names(rep)]
-  rep <- data.frame(unique(rep), check.names = F) # compress repartitions
+  rep <- data.frame(unique(rep), check.names = F) # merge identical gene patterns
   return(as.matrix(rep))
 }
 
 
-# add noise
-# add.noise <- function(rep, noise, mod = 2) {
-#   if (mod != 0) {
-#     # rep[rep == 1] <- sapply(rexp(length(which(rep == 1)), rate = noise), function(x) rbinom(1, 1, 1-x))
-#     rep[rep == 1] <- rbinom(length(which(rep == 1)), 1, 1-noise)
-#   }
-#   if (mod != 1) {
-#     # rep[rep == 0] <- sapply(rexp(length(which(rep == 0)), rate = noise), function(x) rbinom(1, 1, x))
-#     rep[rep == 0] <- rbinom(length(which(rep == 0)), 1, noise)
-#   }
-#   return(rep)
-# }
-# add.noise.exp <- function(rep, noise) {
-#   par_ber <- rexp(nrow(rep), rate = 1/noise)
-#   # par_ber <- runif(nrow(rep), min = 0, max = 2*noise)
-#   rep_noise <- sapply(seq(ncol(rep)), function(j) sapply(seq(nrow(rep)), function(i)
-#     if (rep[i,j] == 0) rbinom(1,1,par_ber[i]) else rbinom(1,1,1-par_ber[i])))
-#   colnames(rep_noise) <- colnames(rep)
-#   rep_noise[1,1] <- rep_noise[1,1]*1.0
-#   return(rep_noise)
-# }
-# add.noise.cst <- function(rep, noise) {
-#   rep_noise <- sapply(seq(ncol(rep)), function(j) sapply(seq(nrow(rep)), function(i)
-#     if (rep[i,j] == 0) rbinom(1,1,noise[1]) else rbinom(1,1,1-noise[2])))
-#   colnames(rep_noise) <- colnames(rep)
-#   rep_noise[1,1] <- rep_noise[1,1]*1.0
-#   return(rep_noise)
-# }
+
+
+
+############################################ USE EXAMPLE #######################################################
+
+# simulate an ultrametric random tree with 20 leaves and height 1
+tree <- sim.tree(20, 1)
+
+# or load a reconstructed species tree (in Newick format)
+# tree <- read.tree(file = "tree.nwk")
+
+
+# compute some tree statistics
+depths <- get_all_distances_to_root(tree)
+H <- max(depths)
+G <- tree$Nnode + 1
+root <- G + 1
+
+
+# set parameters
+N0 <- 200
+l0 <- 0.1
+i1 <- 50
+l1 <- 2
+i2 <- 150.
+g2 <- 5.
+l2 <- 10.
+eps0 <- 0.015
+eps1 <- 0.015
+eps2 <- 0.015
+
+# or draw them randomly
+# N0 <- sample(500:1500, 1)
+# l0 <- rlunif(1, 0.1/L, 10/L)
+# i1 <- runif(1, 500/L, 1500/L)
+# l1 <- rlunif(1, 5/L, 500/L)
+# i2 <- runif(1, 500/H, 1500/H)
+# g2 <- rlunif(1, 5/L, 500/L)
+# l2 <- rlunif(1, 250/L, 25000/L)
+# eps0 <- rexp(1, rate = 100)
+# eps1 <- rexp(1, rate = 100)
+# eps2 <- rexp(1, rate = 100)
+
+
+# simulate gene patterns along the tree
+rep_N0 <- sim.N(N0, l0, eps0, err="cst")
+rep_N1 <- sim.N(round(i1/l1), l1, eps1, err="cst")
+rep_I1 <- sim.I1(i1, l1, eps1, err="cst")
+rep_I2 <- sim.I2(i2, g2, l2, eps2, eps2, err="cst")
+
+
+# build presence/absence matrix
+rep <- rbind(rep_N0, rep_N1, rep_I1, rep_I2)
+rep <- cbind(rep, c(rep(0, nrow(rep_N0)), rep(1, nrow(rep_N1)+nrow(rep_I1)), rep(2, nrow(rep_I2))))
+colnames(rep) <- c(tree$tip.label, "cat")
+print(table(rep[,"cat"])) # print pangenome composition
+
+
+# store presence/absence matrix in csv format, compatible with C++ inference tool
+# write.table(t(rep[,1:G]), file = "pa_matrix.txt", sep = ",", quote = F)
+
 
 
 
