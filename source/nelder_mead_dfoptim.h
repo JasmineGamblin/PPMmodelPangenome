@@ -1,3 +1,14 @@
+/*
+This implementation of the Nelder-Mead optimization method is based on a code by
+Piotr Różański that can be found here: https://github.com/develancer/nelder-mead
+I modified it so that it behaves exactly like the implementation found in the R
+package dfoptim by Ravi Varadhan.
+
+This code is distributed under the GNU GPL license.
+
+Author: Jasmine Gamblin
+*/
+
 #ifndef PTR_NELDER_MEAD_H
 #define PTR_NELDER_MEAD_H
 

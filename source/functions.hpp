@@ -1,3 +1,11 @@
+/*
+Function headers to perform Maximum Likelihood inference under the PPM model.
+
+This code is distributed under the GNU GPL license.
+
+Author: Jasmine Gamblin
+*/
+
 #include <vector>
 #include <map>
 #include "objects.hpp"
@@ -39,7 +47,6 @@ class Inference
     double computeI2(double N0, double l0, double i1, double l1, double g2, double l2, vector<double> eps);
     double likRepTot(int rep, double N0, double l0, double i1, double l1, double i2, double g2, double l2,
     vector<double> eps);
-    double verif(double l0, double l1, double g2, double l2, vector<double> eps);
     double logLik(double N0, double l0, double i1, double l1, double g2, double l2, vector<double> eps);
     static bool anyAbove(vector<double> start, vector<double> upper);
     void optim7(int seed);

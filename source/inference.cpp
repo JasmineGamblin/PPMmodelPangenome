@@ -1,3 +1,11 @@
+/*
+Main file to perform Maximum Likelihood inference under the PPM model.
+
+This code is distributed under the GNU GPL license.
+
+Author: Jasmine Gamblin
+*/
+
 #include <iostream>
 #include "functions.hpp"
 #include <time.h>
@@ -11,18 +19,22 @@ int main(int argc, char* argv[])
     
     time_t debut = time(NULL);
     
+
     // store tree
     RecTree tree = RecTree::readTree(argv[2]);
     cout << "tree OK" << endl;
+
 
     // store presence/absence matrix
     PAmatrix mat(argv[3]);
     cout << "matrix OK, size " << mat.getMatrix().size() << "x" << mat.getMatrix()[0].size() << endl;
 
+
     // build Inference object
     Inference inf(tree, mat);
     cout << "inference initialization OK" << endl;
     
+
     // inference
     if (stoi(argv[4]) == 7) // 7 or 9 parameters?
     {
@@ -47,10 +59,14 @@ int main(int argc, char* argv[])
     } else {
         cout << "incorrect number of parameters (valid values: 7 or 9)" << endl;
     }
-    inf.writeParam(argv[1], argv[5]);
-    inf.assignCat(argv[6]);
-    inf.printPangenomeCompo();
+
+
+    // store results
+    inf.writeParam(argv[1], argv[5]); // store ML estimates of parameters
+    inf.assignCat(argv[6]); // store inferred gene categories
+    inf.printPangenomeCompo(); // print expected pangenome composition
     
+
     time_t fin = time(NULL);
     cout << "DONE :)    Time duration: " << fin-debut << " seconds" << endl;
     return 0;

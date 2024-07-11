@@ -1,3 +1,11 @@
+/*
+Functions to perform Maximum Likelihood inference under the PPM model.
+
+This code is distributed under the GNU GPL license.
+
+Author: Jasmine Gamblin
+*/
+
 #include "functions.hpp"
 #include <cmath>
 #include <queue>
@@ -185,7 +193,6 @@ double Inference::likUpper1(int gainNodeID, double l, double e)
     
     int child;
     double sum_bl = branchLength[gainNodeID];
-    double p_sub;
     double likSubtrees(0);
     double likU = log(1-exp(-l*branchLength[gainNodeID]));
     while (!nodes.empty())

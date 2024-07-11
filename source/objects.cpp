@@ -1,3 +1,11 @@
+/*
+Objects used to perform Maximum Likelihood inference under the PPM model.
+
+This code is distributed under the GNU GPL license.
+
+Author: Jasmine Gamblin
+*/
+
 #include "objects.hpp"
 #include <cmath>
 #include <iostream>
