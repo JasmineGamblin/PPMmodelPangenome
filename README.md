@@ -72,6 +72,8 @@ To run an inference with a chosen starting point, use instead (example with 9 fr
 ```
 where `N0`, `l0`, `i1`, `l1`, `g2`, `l2`, `eps0`, `eps1` and `eps2` are replaced by the chosen initial values.
 
+Inference should take around 5 minutes on a laptop with the provided test data (20 genomes, 949 genes), but using a cluster is recommended for bigger datasets.
+
 ### 3. Output file format
 - Parameter estimates `mle_param.txt`: values are stored in the following order: `seed`, `N0`, `l0`, `i1`, `l1`, `i2`, `g2`, `l2`, `eps0`, `eps1`, `eps2`, and the maximum log-likelihood value reached
 
