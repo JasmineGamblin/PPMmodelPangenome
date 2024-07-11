@@ -30,3 +30,7 @@
 *.exe
 *.out
 *.app
+
+# Output files
+mle_param.txt
+inf_cat.txt
