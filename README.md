@@ -10,15 +10,37 @@ This repository contains the source code used in the manuscript 'Persistent, Pri
 - `nelder_mead_dfoptim.h`: Nelder-Mead optimzation algorithm, as implemented in the R package `dfoptim`
 - `simulation.R`: R code used to simulate the PPM model
 
-## Requirements
+## Installation and Compilation
+
+### Requirements
 - GCC (or other C++ compiler)
 - `libtbb` (Intel Threading Building Blocks)
 
-## Compilation
-To compile inference.cpp, use the following command:
+### Installation
 
+1. **Clone repository**:
 ```sh
-gcc inference.cpp -o inference objects.cpp functions.cpp -ltbb
+git clone https://github.com/JasmineGamblin/PPMmodelPangenome
+cd PPMmodelPangenome
+```
+
+2. **Install TBB**:
+Sur Ubuntu/Debian :
+```sh
+sudo apt-get install libtbb-dev
+```
+Sur Fedora :
+```sh
+sudo dnf install tbb-devel
+```
+Sur macOS :
+```sh
+brew install tbb
+```
+
+### Compilation
+```sh
+make
 ```
 
 ## Run inference
