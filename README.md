@@ -16,27 +16,24 @@ This repository contains the source code used in the manuscript 'Persistent, Pri
 - GCC (or other C++ compiler)
 - `libtbb` (Intel Threading Building Blocks)
 
-### Installation
-
-1. **Clone repository**:
-```sh
-git clone https://github.com/JasmineGamblin/PPMmodelPangenome
-cd PPMmodelPangenome
-```
-
-2. **Install TBB**:
-
-Sur Ubuntu/Debian :
+**Install TBB** on Ubuntu/Debian:
 ```sh
 sudo apt-get install libtbb-dev
 ```
-Sur Fedora :
+on Fedora :
 ```sh
 sudo dnf install tbb-devel
 ```
-Sur macOS :
+on macOS :
 ```sh
 brew install tbb
+```
+
+### Installation
+Clone repository:
+```sh
+git clone https://github.com/JasmineGamblin/PPMmodelPangenome
+cd PPMmodelPangenome
 ```
 
 ### Compilation
