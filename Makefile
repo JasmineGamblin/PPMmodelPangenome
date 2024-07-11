@@ -6,7 +6,7 @@ CXX = g++
 CXXFLAGS = -std=c++14 -Wall
 
 # source files
-SRCS = inference.cpp functions.cpp objects.cpp
+SRCS = source/inference.cpp source/functions.cpp source/objects.cpp
 
 # objects files
 OBJS = $(SRCS:.cpp=.o)
