@@ -24,9 +24,9 @@ int main(int argc, char* argv[])
     cout << "inference initialization OK" << endl;
     
     // inference
-    if (argv[4] == "7") // 7 or 9 parameters?
+    if (stoi(argv[4]) == 7) // 7 or 9 parameters?
     {
-        if (argv[1] != "0") // fixed or random starting point?
+        if (stoi(argv[1]) != 0) // fixed or random starting point?
         {
             inf.optim7(stoi(argv[1]));
         } else {
@@ -35,8 +35,8 @@ int main(int argc, char* argv[])
             inf.optim7(start);
         }
     }
-    else if (argv[4] == "9") {
-        if (argv[1] != "0") // fixed or random starting point?
+    else if (stoi(argv[4]) == 9) {
+        if (stoi(argv[1]) != 0) // fixed or random starting point?
         {
             inf.optim9(stoi(argv[1]));
         } else {

@@ -7,8 +7,12 @@ using namespace std;
 
 
 
+// auxiliary function for log-sum-exp trick
 double logSumExp(double a, double b);
 
+
+
+// class for species tree
 class RecTree
 {
     public:
@@ -38,6 +42,8 @@ class RecTree
 };
 
 
+
+// class for presence/absence matrix
 class PAmatrix
 {
     public:
@@ -64,6 +70,8 @@ class PAmatrix
 };
 
 
+
+// class for nodes of tree-like structure TreeLikFunctions
 class LikFunction
 {
     public:
@@ -84,6 +92,8 @@ class LikFunction
 };
 
 
+
+// class for storing likelihood calculations
 class TreeLikFunctions
 {
     public:

@@ -13,6 +13,8 @@
 using namespace std;
 
 
+
+//initialization of the inference object
 void Inference::addBl(RecTree* rt, vector<double>& bl)
 {
     if (rt->getLeaf().size() == 0)
@@ -67,8 +69,7 @@ Inference::Inference(RecTree& rt, PAmatrix m)
 {
     tree = &rt;
 
-    mat = m; // I assume that this matrix is restrained to tree leaves, sorted and compressed
-    //(but I don't know if it's necessary)
+    mat = m;
 
     nRep = mat.getMatrix().size();
     nObs = accumulate(mat.getCounts().begin(), mat.getCounts().end(), 0);
@@ -117,7 +118,7 @@ Inference::Inference(RecTree& rt, PAmatrix m)
     }
     meanGenes /= nLeaves;
     
-    // store subtrees (in fact it's just IDs of subtrees roots)
+    // store subtrees (IDs of subtrees roots)
     subtrees = vector<vector<int>>();
     vector<int> current = {0};
     for (int i = nNodes-1; i > 0; i--)
@@ -148,13 +149,13 @@ Inference::Inference(RecTree& rt, PAmatrix m)
 
 
 
-// transition probabilities for cat. 1 genes
+// transition probabilities for Private genes
 double Inference::pLost(double t, double l) {return log(1-exp(-l*t));}
 double Inference::pRemain(double t, double l) {return -l*t;}
 
 
 
-// likelihood functions for cat. 1
+// likelihood functions for Private genes
 double Inference::likSubtree(int nodeID, double l, double e)
 {
     if (tLik.getLikFunctions()[nodeID].isLeaf())
@@ -166,8 +167,8 @@ double Inference::likSubtree(int nodeID, double l, double e)
 }
 double Inference::likUpper1(int gainNodeID, double l, double e)
 {
-    /* parcourir l'arbre de la racine jusqu'à gainNode et pour chaque noeud
-    strictement compris entre les 2 calculer likSubtree */
+    /* traverse the tree from root to gainNode and for each node
+    strictly between the 2 calculate likSubtree */
     
     stack<int> nodes;
     int node = 0;
@@ -215,7 +216,7 @@ double Inference::likRep1(int rep, double l, double e)
 
 
 
-// auxiliary functions of cat. 2 calculations
+// auxiliary functions for Mobile genes calculations
 double Inference::p01(double t, double g, double l)
 {
   if (g == 0.) {return 0.;}
@@ -233,7 +234,7 @@ double Inference::p0leaf(int obs, double t, double g, double l, double e1, doubl
 
 
 
-// likelihood function for cat. 2
+// likelihood function for Mobile genes
 double Inference::likRep2(int rep, double g, double l, double e1, double e2)
 {
     double sum,integral,w,f_aux,t,p1;
@@ -272,7 +273,7 @@ double Inference::likRep2(int rep, double g, double l, double e1, double e2)
 
 
 
-// complete lik
+// complete likelihood
 double Inference::getPobs1(double l, double e)
 {
     double sum(0);
@@ -347,24 +348,6 @@ double l2, vector<double> eps)
     double lik1 = log(i1/(l1*nObs)) + this->likRep1(rep, l1, eps[1]);
     double lik2 = log(i2/nObs) + this->likRep2(rep, g2, l2, eps[2], eps[2]);
     return logSumExp(logSumExp(lik0r, lik1r), logSumExp(lik1, lik2));
-}
-double Inference::verif(double l0, double l1, double g2, double l2, vector<double> eps)
-{
-    double sum = 0.;
-    double aux;
-    fstream file;
-    file.open("freq_cpp_I2_mod2.txt", ios::out);
-    
-    for (int rep = 0; rep<nRep; rep++)
-    {
-        aux = exp(this->likRep2(rep, g2, l2, eps[2], eps[2]))
-        /this->getPobs2(g2, l2, eps[2], eps[2]);
-
-        sum += aux;
-        file << aux << endl;
-    }
-    file.close();
-    return sum;
 }
 double Inference::logLik(double N0, double l0, double i1, double l1, double g2, double l2, vector<double> eps)
 {
@@ -441,8 +424,8 @@ void Inference::optim7(array<double,7>& start)
 {
     const size_t nbPar = 7;
     
-    array<double,nbPar> lower = {0., 0., 0., 0., 0., 1000/L, 0.};
-    array<double,nbPar> upper = {meanGenes, 10/L, 2.*nObs/L, 200/L, 500/L, 15000/L, 0.1};
+    array<double,nbPar> lower = {0., 0., 0., 0., 0., 0., 0.};
+    array<double,nbPar> upper = {2.*meanGenes, 10/L, 3.*nObs/L, 500/L, 500/L, 25000/L, 0.1};
 
     nelder_mead_result<double,nbPar> res = nelder_mead<double,nbPar>([&](const array<double,nbPar>& par, int nbEval){
         cout << nbEval << "th iteration: ";
@@ -523,8 +506,8 @@ void Inference::optim9(array<double,9>& start)
 {
     const size_t nbPar = 9;
     
-    array<double,nbPar> lower = {0., 0., 0., 0., 0., 1000/L, 0., 0., 0.};
-    array<double,nbPar> upper = {meanGenes, 10/L, 2.*nObs/L, 200/L, 500/L, 15000/L, 0.1, 0.1, 0.1};
+    array<double,nbPar> lower = {0., 0., 0., 0., 0., 0., 0., 0., 0.};
+    array<double,nbPar> upper = {meanGenes*2., 10/L, 3.*nObs/L, 500/L, 500/L, 25000/L, 0.1, 0.1, 0.1};
 
     nelder_mead_result<double,nbPar> res = nelder_mead<double,nbPar>([&](const array<double,nbPar>& par, int nbEval){
         cout << nbEval << "th iteration: ";
@@ -552,6 +535,10 @@ void Inference::optim9(array<double,9>& start)
     cout << "Number of function evaluation: " << res.icount << endl;
     cout << "Message: " << res.message << endl;
 }
+
+
+
+// post-optim
 void Inference::writeParam(string seed, string file)
 {
     fstream fileO;
@@ -572,7 +559,7 @@ void Inference::writeParam(string seed, string file)
 }
 void Inference::assignCat(string file)
 {
-    // compute most probable category for each pattern
+    // compute most likely category for each pattern
     vector<double> cat(nRep, 0.);
     tbb::detail::d1::parallel_for(0, nRep, [&](int i)
     {
@@ -621,7 +608,7 @@ double Inference::nb2(double i2, double g2, double l2, double eps)
 }
 void Inference::printPangenomeCompo()
 {
-    cout << "Expected pangenome compisition:" << endl;
+    cout << "Expected pangenome composition:" << endl;
     cout << this->nb0(MLEN0, MLEl0, MLEeps[0]) << " Persistent genes" << endl;
     cout << this->nb1(MLEi1, MLEl1, MLEeps[1]) << " Private genes" << endl;
     cout << this->nb2(MLEi2, MLEg2, MLEl2, MLEeps[2]) << " Mobile genes" << endl;

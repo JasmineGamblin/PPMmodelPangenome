@@ -18,18 +18,15 @@ double logSumExp(double a, double b)
         else {return b;}
     }
     else if (isinf(b)) {return a;}
+    // is the ratio between exp(b) and exp(a) is too small or too big, we neglect the smallest number
     else if (b-a <= 100. && b-a >= -100.) {return a + log(1 + exp(b-a));}
-    // else if (b-a > 700. && b-a <= 1400.) {return 700 + a + log(exp(-700) + exp(b-a-700));}
-    // else if (b-a < -700. && b-a >= -1400.) {return -700 + a + log(exp(700) + exp(b-a+700));}
-    // if b-a is too small or too big we neglect the smallest term
-    // 100 should be enough, on one example we began to see a difference in the likelihood (precision 10-5) under 20
     else if (b-a < -100.) {return a;}
     else {return b;}
 }
 
 
 
-// RecTree class
+// RecTree class (for sepecie tree)
 int RecTree::firstPoint(string& s)
 {
     int par = 0;
@@ -145,7 +142,7 @@ void RecTree::getLeavesID(vector<string>& v)
 
 
 
-// PAmatrix class
+// PAmatrix class (for presence/absence matrix)
 bool PAmatrix::more(vector<int>& row1, vector<int>& row2)
 {
     return accumulate(row1.begin(), row1.end(), 0) > accumulate(row2.begin(), row2.end(), 0);
@@ -168,7 +165,6 @@ PAmatrix::PAmatrix(string path)
     string line, tok;
     
     // first line contains counts if reading a compressed matrix
-    // a compressed matrix must be already sorted
     getline(file, line);
     if (line[0] == 'c' && line[1] == 'c' && line[2] == 'c')
     {
@@ -356,7 +352,7 @@ pair<int, int> LikFunction::getChildren()
 
 
 
-// TreeLikFunctions
+// TreeLikFunctions (to store likelihood calculations)
 void TreeLikFunctions::add_func(RecTree* rt, PAmatrix& mat, vector<LikFunction>& lf)
 {
     if (rt->getLeaf().size()>0) // leaf

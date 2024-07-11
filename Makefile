@@ -3,7 +3,7 @@ TARGET = inference
 
 # compiler
 CXX = g++
-CXXFLAGS = -std=c++11 -Wall
+CXXFLAGS = -std=c++14 -Wall
 
 # source files
 SRCS = inference.cpp functions.cpp objects.cpp
