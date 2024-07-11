@@ -8,6 +8,7 @@ This repository contains the source code used in the manuscript 'Persistent, Pri
 - `fonctions.cpp` and `fonctions.hpp`: auxiliary functions for inference procedure.
 - `objets.cpp` and `objets.hpp`: objects definitions for inference procedure.
 - `nelder_mead_dfoptim.h`: Nelder-Mead optimzation algorithm, as implemented in the R package `dfoptim`
+- `test_tree.nwk` and `test_pa_matrix.txt`: test files containing simulated tree and matrix to run a test inference
 - `simulation.R`: R code used to simulate the PPM model
 
 ## Installation and Compilation
