@@ -39,22 +39,40 @@ cd PPMmodelPangenome
 make
 ```
 
-## Run inference
+## Running an inference
+
+### 1. Input file format
+- Species tree `tree.nwk`: Newick format with leaf labels (handles node labels by ignoring it). Tree must be ultrametric. Example:
+```txt
+(genome2:0.35,genome1:0.35):0;
+```
+
+- Presence/absence matrix `pa_matrix.txt`: Matrix in csv format (comma-separated values) where rows are genomes and columns are genes. Matrix must contain row names (genome IDs matching the tree leaf labels) and column names (which are ignored). Values must be either 0 or 1. Example:
+```txt
+gene1,gene2,gene3
+genome1,1,0,1
+genome2,0,1,1
+```
+
+### 2. Execute code
 To run an inference with a random starting point, use the following command:
 ```sh
-./inference seed "tree.nwk" "pa_matrix.txt" par_nb "mle_param.txt" "inf_cat.txt"
+./inference seed "test/tree.nwk" "test/pa_matrix.txt" par_nb "test/mle_param.txt" "test/inf_cat.txt"
 ```
 where:
-- `seed` is the random seed
-- `tree.nwk` is the file containing the species tree
-- `pa_matrix.txt` is the file containing the presence/absence matrix
+- `seed` is the random seed (must be an integer different from 0, as 0 indicates that the user is chosing the starting point)
+- `tree.nwk` and `pa_matrix.txt` are the input files
 - `par_nb` is the number of free parameters (7 or 9, depending if the error parameter is the same for all categories or not)
-- `mle_param.txt` is the file where the paramter estimates will be stored
-- `inf_cat.txt` is the file where the inferred category for each gene will be stored
+- `mle_param.txt` and `inf_cat.txt` are the output files
 
 
 To run an inference with a chosen starting point, use instead (example with 9 free parameters):
 ```sh
-./inference 0 "tree.nwk" "pa_matrix.txt" 9 "mle_param.txt" "inf_cat.txt" N0 l0 i1 l1 g2 l2 eps0 eps1 eps2
+./inference 0 "test/tree.nwk" "test/pa_matrix.txt" 9 "test/mle_param.txt" "test/inf_cat.txt" N0 l0 i1 l1 g2 l2 eps0 eps1 eps2
 ```
 where `N0`, `l0`, `i1`, `l1`, `g2`, `l2`, `eps0`, `eps1` and `eps2` are replaced by the chosen initial values.
+
+### 3. Output file format
+- Parameter estimates `mle_param.txt`: values are stored in the following order: `seed`, `N0`, `l0`, `i1`, `l1`, `i2`, `g2`, `l2`, `eps0`, `eps1`, `eps2`, and the maximum log-likelihood value reached
+
+- Inferred gene categories `inf_cat.txt`: file containing inferred category number for each gene (0 for Persistent, 1 for Private and 2 for Mobile), separated by blank spaces
