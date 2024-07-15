@@ -7,7 +7,7 @@ This repository contains the source code used in the manuscript 'Persistent, Pri
 - folder `source`: source code for inference tool
 - folder `test`: test files containing simulated tree and matrix to run a test inference
 - `Makefile`: compilation file
-- `simulation.R`: R code used to simulate the PPM model
+- `simulation_aux.R`, `run_simulations.R`: R scripts used to simulate the PPM model
 
 ## Installation and Compilation
 
