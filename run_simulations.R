@@ -15,6 +15,7 @@
 library(KScorrect) # for rlunif (log-uniform distribution)
 
 # simulate an ultrametric random tree with 20 leaves and height 1
+source(file = "simulation_aux.R")
 tree <- sim.tree(20, 1)
 write.tree(tree, "tree.nwk")
 
