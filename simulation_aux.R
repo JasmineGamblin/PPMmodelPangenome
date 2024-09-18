@@ -75,29 +75,12 @@ sim.tree <- function(nb.leaves, height, b=-0.5) {
 
 ############################################ GENES SIMULATION ##################################################
 
-# simulate N0 genes
-sim.N0 <- function(N0, e, err = "cst") {
-  rep <- matrix(rep(1,N0*G), nrow = N0)
-  if (err=="cst") {
-    rep <- sapply(seq(ncol(rep)), function(j) sapply(seq(nrow(rep)), function(i) rbinom(1,1,1-e)))
-  } else if (err=="exp") {
-    par_ber <- rexp(nrow(rep), rate = 1/e)
-    rep <- sapply(seq(ncol(rep)), function(j) sapply(seq(nrow(rep)), function(i) rbinom(1,1,1-par_ber[i])))
-  }
-  selec <- which(rowSums(rep) == 0)
-  if (length(selec) > 0) {
-    return(rep[-selec,])
-  } else {
-    return(rep)
-  }
-}
-
-# simulate N1 genes
-compute.loss <- function(length, l1) {
-  loss <- rexp(1, rate = l1)
+# simulate N0 and N1 genes
+compute.loss <- function(length, l) {
+  loss <- rexp(1, rate = l)
   return(if (loss < length) 0 else 1)
 }
-rep.N1 <- function(l1) {
+rep.N <- function(l) {
   nodes <- c()
   nodes[root] <- 1 # gene is present at root
   for (i in seq(length(tree$edge.length))) {
@@ -105,7 +88,7 @@ rep.N1 <- function(l1) {
     child <- tree$edge[i,2]
     if (nodes[mother]) {
       branch.length <- tree$edge.length[i]
-      presence <- compute.loss(branch.length, l1)
+      presence <- compute.loss(branch.length, l)
     }
     else {
       presence <- 0
@@ -115,7 +98,7 @@ rep.N1 <- function(l1) {
   return(nodes[1:G])
 }
 sim.N <- function(N, l, e, err="cst") {
-  rep <- t(sapply(seq(N), function(i) rep.N1(l)))
+  rep <- t(sapply(seq(N), function(i) rep.N(l)))
   if (err=="cst") {
     rep <- sapply(seq(ncol(rep)), function(j) sapply(seq(nrow(rep)), function(i) if (rep[i,j] == 1) rbinom(1,1,1-e) else 0))
   } else if (err=="exp") {
