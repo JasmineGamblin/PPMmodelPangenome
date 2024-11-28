@@ -151,7 +151,7 @@ Inference::Inference(RecTree& rt, PAmatrix m)
     MLEi2 = 0.;
     MLEg2 = 0.;
     MLEl2 = 0.;
-    MLEeps = {0., 0., 0.};
+    MLEs = {0., 0., 0., 0.};
     MLElik = 0.;
 }
 
@@ -332,40 +332,40 @@ double Inference::getPobs2(double g, double l, double e1, double e2)
     return H-sum;
 }
 double Inference::computeI2(double N0, double l0, double i1, double l1, double g2, double l2,
-vector<double> eps)
+vector<double> s)
 {   
     double p0;
-    if (l0 == 0.) {p0 = 1-pow(eps[0], nLeaves);}
-    else {p0 = 1-exp(tLik.evaluateRootRep(0, nRep, {0,1}, 0., l0, 0., eps[0], 0));}
-    double p1 = 1-exp(tLik.evaluateRootRep(0, nRep, {0,1}, 0., l1, 0., eps[1], 1));
-    double A = this->getPobs1(l1, eps[1]);
-    double B = this->getPobs2(g2, l2, eps[2], eps[2]);
+    if (l0 == 0.) {p0 = 1-pow(s[0], nLeaves);}
+    else {p0 = 1-exp(tLik.evaluateRootRep(0, nRep, {0,1}, 0., l0, 0., s[0], 0));}
+    double p1 = 1-exp(tLik.evaluateRootRep(0, nRep, {0,1}, 0., l1, 0., s[1], 1));
+    double A = this->getPobs1(l1, s[1]);
+    double B = this->getPobs2(g2, l2, s[3], s[2]);
     return (nObs-N0*p0-i1/l1*p1-i1*A)/B;
 }
 double Inference::likRepTot(int rep, double N0, double l0, double i1, double l1, double i2, double g2,
-double l2, vector<double> eps)
+double l2, vector<double> s)
 {
     double lik0r = log(N0/nObs);
-    if (l0 == 0. && (eps[0] > 0. || freq[rep] < nLeaves)) {
-        lik0r += freq[rep]*log(1-eps[0]) + (nLeaves-freq[rep])*log(eps[0]);
+    if (l0 == 0. && (s[0] > 0. || freq[rep] < nLeaves)) {
+        lik0r += freq[rep]*log(1-s[0]) + (nLeaves-freq[rep])*log(s[0]);
     } else if (l0 > 0.) {
-        lik0r += tLik.evaluateRootRep(0, rep, {0,1}, 0., l0, 0., eps[0], 0);
+        lik0r += tLik.evaluateRootRep(0, rep, {0,1}, 0., l0, 0., s[0], 0);
     }
-    double lik1r = log(i1/(l1*nObs)) + tLik.evaluateRootRep(0, rep, {0,1}, 0., l1, 0., eps[1], 1);
-    double lik1 = log(i1/(l1*nObs)) + this->likRep1(rep, l1, eps[1]);
-    double lik2 = log(i2/nObs) + this->likRep2(rep, g2, l2, eps[2], eps[2]);
+    double lik1r = log(i1/(l1*nObs)) + tLik.evaluateRootRep(0, rep, {0,1}, 0., l1, 0., s[1], 1);
+    double lik1 = log(i1/(l1*nObs)) + this->likRep1(rep, l1, s[1]);
+    double lik2 = log(i2/nObs) + this->likRep2(rep, g2, l2, s[3], s[2]);
     return logSumExp(logSumExp(lik0r, lik1r), logSumExp(lik1, lik2));
 }
-double Inference::logLik(double N0, double l0, double i1, double l1, double g2, double l2, vector<double> eps)
+double Inference::logLik(double N0, double l0, double i1, double l1, double g2, double l2, vector<double> s)
 {
-    double i2 = this->computeI2(N0, l0, i1, l1, g2, l2, eps);
+    double i2 = this->computeI2(N0, l0, i1, l1, g2, l2, s);
     if (i2 < 0.)
     {
         return -1e9*1. + i2;
     } else {
         vector<double> lik(nRep, 0.);
         tbb::detail::d1::parallel_for(0, nRep, [&](int i){
-            lik[i] = this->likRepTot(i, N0, l0, i1, l1, i2, g2, l2, eps)*mat.getCounts()[i];
+            lik[i] = this->likRepTot(i, N0, l0, i1, l1, i2, g2, l2, s)*mat.getCounts()[i];
         });
         return accumulate(lik.begin(), lik.end(), 0.);
     }
@@ -379,9 +379,9 @@ bool Inference::anyAbove(vector<double> start, vector<double> upper)
     }
     return res;
 }
-void Inference::optim7(int seed)
+void Inference::optim(int seed)
 {
-    const size_t nbPar = 7;
+    const size_t nbPar = 8;
     
     mt19937 rng(seed);    // Random-number engine used (Mersenne-Twister in this case)
     uniform_int_distribution<int> uniN0(meanGenes/3,meanGenes);
@@ -391,22 +391,22 @@ void Inference::optim7(int seed)
     exponential_distribution<> expl2(L/2500);
     exponential_distribution<> expe(100.);
     array<double,nbPar> start = {uniN0(rng)*1., expl0(rng), unii1(rng)*1., expl1(rng), expl1(rng),
-    expl2(rng), expe(rng)};
-    array<double,nbPar> lower = {0., 0., 0., 0., 0., 0., 0.};
-    array<double,nbPar> upper = {meanGenes*2., 10/L, 3.*nObs/L, 500/L, 500/L, 25000/L, 0.1};
+    expl2(rng), expe(rng), expe(rng)};
+    array<double,nbPar> lower = {0., 0., 0., 0., 0., 0., 0., 0.};
+    array<double,nbPar> upper = {meanGenes*2., 10/L, 3.*nObs/L, 500/L, 500/L, 25000/L, 0.2, 0.2};
     while (this->computeI2(start[0], start[1], start[2], start[3], start[4], start[5],
-    {start[6], start[6], start[6]})
+    {start[6], start[6], start[6], start[7]})
     < 0. || anyAbove({start.begin(), start.end()}, {upper.begin(), upper.end()}))
     {
-        start = {uniN0(rng)*1., expl0(rng), unii1(rng)*1., expl1(rng), expl1(rng), expl2(rng), expe(rng)};
+        start = {uniN0(rng)*1., expl0(rng), unii1(rng)*1., expl1(rng), expl1(rng), expl2(rng), expe(rng), expe(rng)};
     }
 
     nelder_mead_result<double,nbPar> res = nelder_mead<double,nbPar>([&](const array<double,nbPar>& par, int nbEval){
         cout << nbEval << "th iteration: ";
         tLik.clearLikValues();
         cout << par[0] << ' ' << par[1] << ' ' << par[2] << ' ' << par[3] << ' ' << par[4] << ' ' << par[5] << ' '
-        << par[6] << ' ';
-        double ll = this->logLik(par[0], par[1], par[2], par[3], par[4], par[5], {par[6], par[6], par[6]});
+        << par[6] << ' ' << par[7] << ' ';
+        double ll = this->logLik(par[0], par[1], par[2], par[3], par[4], par[5], {par[6], par[6], par[6], par[7]});
         cout << setprecision(9) << ll << endl;
         return -ll;
         }, start, lower, upper, 0.0001, 3000, 10);
@@ -416,30 +416,30 @@ void Inference::optim7(int seed)
     MLEl1 = res.xmin[3];
     MLEg2 = res.xmin[4];
     MLEl2 = res.xmin[5];
-    MLEeps = {res.xmin[6], res.xmin[6], res.xmin[6]};
-    MLEi2 = computeI2(MLEN0, MLEl0, MLEi1, MLEl1, MLEg2, MLEl2, MLEeps);
+    MLEs = {res.xmin[6], res.xmin[6], res.xmin[6], res.xmin[7]};
+    MLEi2 = computeI2(MLEN0, MLEl0, MLEi1, MLEl1, MLEg2, MLEl2, MLEs);
     MLElik = -res.ymin;
     cout << "Found minimum: " << MLEN0 << ' ' << MLEl0 << ' ' << MLEi1 << ' ' << MLEl1 << ' '
-    << MLEi2 << ' ' << MLEg2 << ' ' << MLEl2 << ' ' << MLEeps[0] << ' ' << MLEeps[1] << ' ' << MLEeps[2] << endl;
+    << MLEi2 << ' ' << MLEg2 << ' ' << MLEl2 << ' ' << MLEs[0] << ' ' << MLEs[3] << endl;
     cout << "upper limit:   " << upper[0] << ' ' << upper[1] << ' ' << upper[2] << ' ' << upper[3] << '\t' << upper[4]
-    << ' ' << upper[5] << ' ' << upper[6] << '\t' << '\t' << endl;
+    << ' ' << upper[5] << ' ' << upper[6] << ' ' << upper[7] << endl;
     cout << "logLik value: " << MLElik << endl;
     cout << "Number of function evaluation: " << res.icount << endl;
     cout << "Message: " << res.message << endl;
 }
-void Inference::optim7(array<double,7>& start)
+void Inference::optim(array<double,8>& start)
 {
-    const size_t nbPar = 7;
+    const size_t nbPar = 8;
     
-    array<double,nbPar> lower = {0., 0., 0., 0., 0., 0., 0.};
-    array<double,nbPar> upper = {2.*meanGenes, 10/L, 3.*nObs/L, 500/L, 500/L, 25000/L, 0.1};
+    array<double,nbPar> lower = {0., 0., 0., 0., 0., 0., 0., 0.};
+    array<double,nbPar> upper = {2.*meanGenes, 10/L, 3.*nObs/L, 500/L, 500/L, 25000/L, 0.2, 0.2};
 
     nelder_mead_result<double,nbPar> res = nelder_mead<double,nbPar>([&](const array<double,nbPar>& par, int nbEval){
         cout << nbEval << "th iteration: ";
         tLik.clearLikValues();
         cout << par[0] << ' ' << par[1] << ' ' << par[2] << ' ' << par[3] << ' ' << par[4] << ' ' << par[5] << ' '
-        << par[6] << ' ';
-        double ll = this->logLik(par[0], par[1], par[2], par[3], par[4], par[5], {par[6], par[6], par[6]});
+        << par[6] << ' ' << par[7] << ' ';
+        double ll = this->logLik(par[0], par[1], par[2], par[3], par[4], par[5], {par[6], par[6], par[6], par[7]});
         cout << setprecision(9) << ll << endl;
         return -ll;
         }, start, lower, upper, 0.0001, 3000, 10);
@@ -449,95 +449,13 @@ void Inference::optim7(array<double,7>& start)
     MLEl1 = res.xmin[3];
     MLEg2 = res.xmin[4];
     MLEl2 = res.xmin[5];
-    MLEeps = {res.xmin[6], res.xmin[6], res.xmin[6]};
-    MLEi2 = computeI2(MLEN0, MLEl0, MLEi1, MLEl1, MLEg2, MLEl2, MLEeps);
+    MLEs = {res.xmin[6], res.xmin[6], res.xmin[6], res.xmin[7]};
+    MLEi2 = computeI2(MLEN0, MLEl0, MLEi1, MLEl1, MLEg2, MLEl2, MLEs);
     MLElik = -res.ymin;
     cout << "Found minimum: " << MLEN0 << ' ' << MLEl0 << ' ' << MLEi1 << ' ' << MLEl1 << ' '
-    << MLEi2 << ' ' << MLEg2 << ' ' << MLEl2 << ' ' << MLEeps[0] << ' ' << MLEeps[1] << ' ' << MLEeps[2] << endl;
+    << MLEi2 << ' ' << MLEg2 << ' ' << MLEl2 << ' ' << MLEs[0] << ' ' << MLEs[3] << endl;
     cout << "upper limit:   " << upper[0] << ' ' << upper[1] << ' ' << upper[2] << ' ' << upper[3] << '\t' << upper[4]
-    << ' ' << upper[5] << ' ' << upper[6] << '\t' << '\t' << endl;
-    cout << "logLik value: " << MLElik << endl;
-    cout << "Number of function evaluation: " << res.icount << endl;
-    cout << "Message: " << res.message << endl;
-}
-void Inference::optim9(int seed)
-{
-    const size_t nbPar = 9;
-    
-    mt19937 rng(seed);    // Random-number engine used (Mersenne-Twister in this case)
-    uniform_int_distribution<int> uniN0(meanGenes/3,meanGenes);
-    uniform_int_distribution<int> unii1(nObs/(L*5),nObs/L);
-    exponential_distribution<> expl0(L);
-    exponential_distribution<> expl1(L/50);
-    exponential_distribution<> expl2(L/2500);
-    exponential_distribution<> expe(100.);
-    array<double,nbPar> start = {uniN0(rng)*1., expl0(rng), unii1(rng)*1., expl1(rng), expl1(rng),
-    expl2(rng), expe(rng), expe(rng), expe(rng)};
-    array<double,nbPar> lower = {0., 0., 0., 0., 0., 0., 0., 0., 0.};
-    array<double,nbPar> upper = {meanGenes*2., 10/L, 3.*nObs/L, 500/L, 500/L, 25000/L, 0.1, 0.1, 0.1};
-    while (this->computeI2(start[0], start[1], start[2], start[3], start[4], start[5],
-    {start[6], start[7], start[8]})
-    < 0. || anyAbove({start.begin(), start.end()}, {upper.begin(), upper.end()}))
-    {
-        start = {uniN0(rng)*1., expl0(rng), unii1(rng)*1., expl1(rng), expl1(rng), expl2(rng),
-        expe(rng), expe(rng), expe(rng)};
-    }
-
-    nelder_mead_result<double,nbPar> res = nelder_mead<double,nbPar>([&](const array<double,nbPar>& par, int nbEval){
-        cout << nbEval << "th iteration: ";
-        tLik.clearLikValues();
-        cout << par[0] << ' ' << par[1] << ' ' << par[2] << ' ' << par[3] << ' ' << par[4] << ' ' << par[5] << ' '
-        << par[6] << ' ' << par[7] << ' ' << par[8] << ' ';
-        double ll = this->logLik(par[0], par[1], par[2], par[3], par[4], par[5], {par[6], par[7], par[8]});
-        cout << setprecision(9) << ll << endl;
-        return -ll;
-        }, start, lower, upper, 0.0001, 3000, 10);
-    MLEN0 = res.xmin[0];
-    MLEl0 = res.xmin[1];
-    MLEi1 = res.xmin[2];
-    MLEl1 = res.xmin[3];
-    MLEg2 = res.xmin[4];
-    MLEl2 = res.xmin[5];
-    MLEeps = {res.xmin[6], res.xmin[7], res.xmin[8]};
-    MLEi2 = computeI2(MLEN0, MLEl0, MLEi1, MLEl1, MLEg2, MLEl2, MLEeps);
-    MLElik = -res.ymin;
-    cout << "Found minimum: " << MLEN0 << ' ' << MLEl0 << ' ' << MLEi1 << ' ' << MLEl1 << ' '
-    << MLEi2 << ' ' << MLEg2 << ' ' << MLEl2 << ' ' << MLEeps[0] << ' ' << MLEeps[1] << ' ' << MLEeps[2] << endl;
-    cout << "upper limit:   " << upper[0] << ' ' << upper[1] << ' ' << upper[2] << ' ' << upper[3] << '\t' << upper[4]
-    << ' ' << upper[5] << ' ' << upper[6] << ' ' << upper[7] << ' ' << upper[8] << endl;
-    cout << "logLik value: " << MLElik << endl;
-    cout << "Number of function evaluation: " << res.icount << endl;
-    cout << "Message: " << res.message << endl;
-}
-void Inference::optim9(array<double,9>& start)
-{
-    const size_t nbPar = 9;
-    
-    array<double,nbPar> lower = {0., 0., 0., 0., 0., 0., 0., 0., 0.};
-    array<double,nbPar> upper = {meanGenes*2., 10/L, 3.*nObs/L, 500/L, 500/L, 25000/L, 0.1, 0.1, 0.1};
-
-    nelder_mead_result<double,nbPar> res = nelder_mead<double,nbPar>([&](const array<double,nbPar>& par, int nbEval){
-        cout << nbEval << "th iteration: ";
-        tLik.clearLikValues();
-        cout << par[0] << ' ' << par[1] << ' ' << par[2] << ' ' << par[3] << ' ' << par[4] << ' ' << par[5] << ' '
-        << par[6] << ' ' << par[7] << ' ' << par[8] << ' ';
-        double ll = this->logLik(par[0], par[1], par[2], par[3], par[4], par[5], {par[6], par[7], par[8]});
-        cout << setprecision(9) << ll << endl;
-        return -ll;
-        }, start, lower, upper, 0.0001, 3000, 10);
-    MLEN0 = res.xmin[0];
-    MLEl0 = res.xmin[1];
-    MLEi1 = res.xmin[2];
-    MLEl1 = res.xmin[3];
-    MLEg2 = res.xmin[4];
-    MLEl2 = res.xmin[5];
-    MLEeps = {res.xmin[6], res.xmin[7], res.xmin[8]};
-    MLEi2 = computeI2(MLEN0, MLEl0, MLEi1, MLEl1, MLEg2, MLEl2, MLEeps);
-    MLElik = -res.ymin;
-    cout << "Found minimum: " << MLEN0 << ' ' << MLEl0 << ' ' << MLEi1 << ' ' << MLEl1 << ' '
-    << MLEi2 << ' ' << MLEg2 << ' ' << MLEl2 << ' ' << MLEeps[0] << ' ' << MLEeps[1] << ' ' << MLEeps[2] << endl;
-    cout << "upper limit:   " << upper[0] << ' ' << upper[1] << ' ' << upper[2] << ' ' << upper[3] << '\t' << upper[4]
-    << ' ' << upper[5] << ' ' << upper[6] << ' ' << upper[7] << ' ' << upper[8] << endl;
+    << ' ' << upper[5] << ' ' << upper[6] << ' ' <<upper[7] << endl;
     cout << "logLik value: " << MLElik << endl;
     cout << "Number of function evaluation: " << res.icount << endl;
     cout << "Message: " << res.message << endl;
@@ -558,9 +476,10 @@ void Inference::writeParam(string seed, string file)
     fileO << MLEi2 << " ";
     fileO << MLEg2 << " ";
     fileO << MLEl2 << " ";
-    fileO << MLEeps[0] << " ";
-    fileO << MLEeps[1] << " ";
-    fileO << MLEeps[2] << " ";
+    fileO << MLEs[0] << " ";
+    fileO << MLEs[1] << " ";
+    fileO << MLEs[2] << " ";
+    fileO << MLEs[3] << " ";
     fileO << MLElik << endl;
     fileO.close();
 }
@@ -573,14 +492,14 @@ void Inference::assignCat(string file)
         // compute proba of the 3 categories
         vector<double> lik(3, 0.);
         lik[0] = log(MLEN0/nObs);
-        if (MLEl0 == 0. && (MLEeps[0] > 0. || freq[i] < nLeaves)) {
-            lik[0] += freq[i]*log(1-MLEeps[0]) + (nLeaves-freq[i])*log(MLEeps[0]);
+        if (MLEl0 == 0. && (MLEs[0] > 0. || freq[i] < nLeaves)) {
+            lik[0] += freq[i]*log(1-MLEs[0]) + (nLeaves-freq[i])*log(MLEs[0]);
         } else if (MLEl0 > 0.) {
-            lik[0] += tLik.evaluateRootRep(0, i, {0,1}, 0., MLEl0, 0., MLEeps[0], 0);
+            lik[0] += tLik.evaluateRootRep(0, i, {0,1}, 0., MLEl0, 0., MLEs[0], 0);
         }
         lik[1] = logSumExp(log(MLEi1/(MLEl1*nObs)) + tLik.evaluateRootRep(0, i, {0,1}, 0., MLEl1,
-        0., MLEeps[1], 1), log(MLEi1/(MLEl1*nObs)) + this->likRep1(i, MLEl1, MLEeps[1]));
-        lik[2] = log(MLEi2/nObs) + this->likRep2(i, MLEg2, MLEl2, MLEeps[2], MLEeps[2]);
+        0., MLEs[1], 1), log(MLEi1/(MLEl1*nObs)) + this->likRep1(i, MLEl1, MLEs[1]));
+        lik[2] = log(MLEi2/nObs) + this->likRep2(i, MLEg2, MLEl2, MLEs[3], MLEs[2]);
         // find most probable
         cat[i] = 0;
         if (lik[1]>lik[0]) {cat[i] = 1;}
@@ -595,28 +514,28 @@ void Inference::assignCat(string file)
         fileO << elem << " ";
     });
 }
-double Inference::nb0(double N0, double l0, double eps)
+double Inference::nb0(double N0, double l0, double s)
 {
     double p0;
-    if (l0 == 0.) {p0 = 1-pow(eps, nLeaves);}
-    else {p0 = 1-exp(tLik.evaluateRootRep(0, nRep, {0,1}, 0., l0, 0., eps, 0));}
+    if (l0 == 0.) {p0 = 1-pow(s, nLeaves);}
+    else {p0 = 1-exp(tLik.evaluateRootRep(0, nRep, {0,1}, 0., l0, 0., s, 0));}
     return N0*p0;
 }
-double Inference::nb1(double i1, double l1, double eps)
+double Inference::nb1(double i1, double l1, double s)
 {
-    double p1 = 1-exp(tLik.evaluateRootRep(0, nRep, {0,1}, 0., l1, 0., eps, 1));
-    double A = this->getPobs1(l1, eps);
+    double p1 = 1-exp(tLik.evaluateRootRep(0, nRep, {0,1}, 0., l1, 0., s, 1));
+    double A = this->getPobs1(l1, s);
     return i1*p1/l1 + i1*A;
 }
-double Inference::nb2(double i2, double g2, double l2, double eps)
+double Inference::nb2(double i2, double g2, double l2, double s_gain, double s_loss)
 {
-    double B = this->getPobs2(g2, l2, eps, eps);
+    double B = this->getPobs2(g2, l2, s_gain, s_loss);
     return i2*B;
 }
 void Inference::printPangenomeCompo()
 {
     cout << "Expected pangenome composition:" << endl;
-    cout << this->nb0(MLEN0, MLEl0, MLEeps[0]) << " Persistent genes" << endl;
-    cout << this->nb1(MLEi1, MLEl1, MLEeps[1]) << " Private genes" << endl;
-    cout << this->nb2(MLEi2, MLEg2, MLEl2, MLEeps[2]) << " Mobile genes" << endl;
+    cout << this->nb0(MLEN0, MLEl0, MLEs[0]) << " Persistent genes" << endl;
+    cout << this->nb1(MLEi1, MLEl1, MLEs[1]) << " Private genes" << endl;
+    cout << this->nb2(MLEi2, MLEg2, MLEl2, MLEs[3], MLEs[2]) << " Mobile genes" << endl;
 }

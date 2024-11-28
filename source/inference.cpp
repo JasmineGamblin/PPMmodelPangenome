@@ -36,34 +36,19 @@ int main(int argc, char* argv[])
     
 
     // inference
-    if (stoi(argv[4]) == 7) // 7 or 9 parameters?
+    if (stoi(argv[1]) != 0) // fixed or random starting point?
     {
-        if (stoi(argv[1]) != 0) // fixed or random starting point?
-        {
-            inf.optim7(stoi(argv[1]));
-        } else {
-            array<double,7> start = {stod(argv[7]), stod(argv[8]), stod(argv[9]), stod(argv[10]),
-            stod(argv[11]), stod(argv[12]), stod(argv[13])};
-            inf.optim7(start);
-        }
-    }
-    else if (stoi(argv[4]) == 9) {
-        if (stoi(argv[1]) != 0) // fixed or random starting point?
-        {
-            inf.optim9(stoi(argv[1]));
-        } else {
-            array<double,9> start = {stod(argv[7]), stod(argv[8]), stod(argv[9]), stod(argv[10]),
-            stod(argv[11]), stod(argv[12]), stod(argv[13]), stod(argv[14]), stod(argv[15])};
-            inf.optim9(start);
-        }
+        inf.optim(stoi(argv[1]));
     } else {
-        cout << "incorrect number of parameters (valid values: 7 or 9)" << endl;
+        array<double,8> start = {stod(argv[6]), stod(argv[7]), stod(argv[8]), stod(argv[9]),
+        stod(argv[10]), stod(argv[11]), stod(argv[12]), stod(argv[13])};
+        inf.optim(start);
     }
 
 
     // store results
-    inf.writeParam(argv[1], argv[5]); // store ML estimates of parameters
-    inf.assignCat(argv[6]); // store inferred gene categories
+    inf.writeParam(argv[1], argv[4]); // store ML estimates of parameters
+    inf.assignCat(argv[5]); // store inferred gene categories
     inf.printPangenomeCompo(); // print expected pangenome composition
     
 

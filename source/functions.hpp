@@ -44,22 +44,20 @@ class Inference
     // complete likelihood
     double getPobs1(double l, double e);
     double getPobs2(double g, double l, double e1, double e2);
-    double computeI2(double N0, double l0, double i1, double l1, double g2, double l2, vector<double> eps);
+    double computeI2(double N0, double l0, double i1, double l1, double g2, double l2, vector<double> s);
     double likRepTot(int rep, double N0, double l0, double i1, double l1, double i2, double g2, double l2,
-    vector<double> eps);
-    double logLik(double N0, double l0, double i1, double l1, double g2, double l2, vector<double> eps);
+    vector<double> s);
+    double logLik(double N0, double l0, double i1, double l1, double g2, double l2, vector<double> s);
     static bool anyAbove(vector<double> start, vector<double> upper);
-    void optim7(int seed);
-    void optim7(array<double,7>& start);
-    void optim9(int seed);
-    void optim9(array<double,9>& start);
+    void optim(int seed);
+    void optim(array<double,8>& start);
 
     // post-optim
     void writeParam(string seed, string file);
     void assignCat(string mat_file);
-    double nb0(double N0, double l0, double eps);
-    double nb1(double i1, double l1, double eps);
-    double nb2(double i2, double g2, double l2, double eps);
+    double nb0(double N0, double l0, double s);
+    double nb1(double i1, double l1, double s);
+    double nb2(double i2, double g2, double l2, double s_gain, double s_loss);
     void printPangenomeCompo();
 
 
@@ -90,6 +88,6 @@ class Inference
     double MLEi2;
     double MLEg2;
     double MLEl2;
-    vector<double> MLEeps;
+    vector<double> MLEs;
     double MLElik; // maximum value of the log-likelihood
 };
