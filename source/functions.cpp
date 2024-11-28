@@ -513,6 +513,7 @@ void Inference::assignCat(string file)
     {
         fileO << elem << " ";
     });
+    fileO.close();
 }
 double Inference::nb0(double N0, double l0, double s)
 {
