@@ -57,24 +57,23 @@ genome2,0,1,1
 ### 2. Execute code
 To run an inference with a random starting point, use the following command:
 ```sh
-./inference seed "test/tree.nwk" "test/pa_matrix.txt" par_nb "test/mle_param.txt" "test/inf_cat.txt"
+./inference seed "test/tree.nwk" "test/pa_matrix.txt" "test/mle_param.txt" "test/inf_cat.txt"
 ```
 where:
 - `seed` is the random seed (must be an integer different from 0, as 0 indicates that the user is chosing the starting point)
 - `tree.nwk` and `pa_matrix.txt` are the input files
-- `par_nb` is the number of free parameters (7 or 9, depending if the error parameter is the same for all categories or not)
 - `mle_param.txt` and `inf_cat.txt` are the output files
 
 
-To run an inference with a chosen starting point, use instead (example with 9 free parameters):
+To run an inference with a chosen starting point, use instead:
 ```sh
-./inference 0 "test/tree.nwk" "test/pa_matrix.txt" 9 "test/mle_param.txt" "test/inf_cat.txt" N0 l0 i1 l1 g2 l2 eps0 eps1 eps2
+./inference 0 "test/tree.nwk" "test/pa_matrix.txt" "test/mle_param.txt" "test/inf_cat.txt" N0 l0 i1 l1 g2 l2 s_10 s_01
 ```
-where `N0`, `l0`, `i1`, `l1`, `g2`, `l2`, `eps0`, `eps1` and `eps2` are replaced by the chosen initial values.
+where `N0`, `l0`, `i1`, `l1`, `g2`, `l2`, `s_10`, and `s_01` are replaced by the chosen initial values.
 
 Inference should take around 5 minutes on a laptop with the provided test data (20 genomes, 949 genes), but using a cluster is recommended for bigger datasets.
 
 ### 3. Output file format
-- Parameter estimates `mle_param.txt`: values are stored in the following order: `seed`, `N0`, `l0`, `i1`, `l1`, `i2`, `g2`, `l2`, `eps0`, `eps1`, `eps2`, and the maximum log-likelihood value reached
+- Parameter estimates `mle_param.txt`: values are stored in the following order: `seed`, `N0`, `l0`, `i1`, `l1`, `i2`, `g2`, `l2`, `s_10`, `s_01`, and the maximum log-likelihood value reached
 
 - Inferred gene categories `inf_cat.txt`: file containing inferred category number for each gene (0 for Persistent, 1 for Private and 2 for Mobile), separated by blank spaces
