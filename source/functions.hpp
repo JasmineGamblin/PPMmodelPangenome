@@ -52,13 +52,24 @@ class Inference
     void optim(int seed);
     void optim(array<double,8>& start);
 
-    // post-optim
+    // post-optim functions
     void writeParam(string seed, string file);
     void assignCat(string mat_file);
     double nb0(double N0, double l0, double s);
     double nb1(double i1, double l1, double s);
     double nb2(double i2, double g2, double l2, double s_gain, double s_loss);
     void printPangenomeCompo();
+
+    // accessory functions (must know parameters to use them)
+    void computeProbaCat(string file, double N0, double l0, double i1, double l1, double i2, double g2, double l2,
+        double s_gain, double s_loss);
+    double sumGains(int st, double g2);
+    double expectedGains(double g2);
+    double expectedTime1(int rep, double l1, double e);
+    void expectedTime1_store(string file, double l1, double e);
+    vector<double> expectedTime2_times();
+    vector<double> expectedTime2_aux(int rep, double g2, double l2, double s_gain, double s_loss);
+    void expectedTime2_store(string file, double g2, double l2, double s_gain, double s_loss);
 
 
 

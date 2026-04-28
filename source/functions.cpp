@@ -463,7 +463,9 @@ void Inference::optim(array<double,8>& start)
 
 
 
-// post-optim
+// main post-optimisation functions
+
+// write inferred parameters in file
 void Inference::writeParam(string seed, string file)
 {
     fstream fileO;
@@ -483,6 +485,7 @@ void Inference::writeParam(string seed, string file)
     fileO << MLElik << endl;
     fileO.close();
 }
+// compute inferred category for each gene and store it in file
 void Inference::assignCat(string file)
 {
     // compute most likely category for each pattern
@@ -515,6 +518,7 @@ void Inference::assignCat(string file)
     });
     fileO.close();
 }
+// compute expected number of Persistent genes
 double Inference::nb0(double N0, double l0, double s)
 {
     double p0;
@@ -522,21 +526,236 @@ double Inference::nb0(double N0, double l0, double s)
     else {p0 = 1-exp(tLik.evaluateRootRep(0, nRep, {0,1}, 0., l0, 0., s, 0));}
     return N0*p0;
 }
+// compute expected number of Private genes
 double Inference::nb1(double i1, double l1, double s)
 {
     double p1 = 1-exp(tLik.evaluateRootRep(0, nRep, {0,1}, 0., l1, 0., s, 1));
     double A = this->getPobs1(l1, s);
     return i1*p1/l1 + i1*A;
 }
+// compute expected number of Mobile genes
 double Inference::nb2(double i2, double g2, double l2, double s_gain, double s_loss)
 {
     double B = this->getPobs2(g2, l2, s_gain, s_loss);
     return i2*B;
 }
+// print expected pangenome composition
 void Inference::printPangenomeCompo()
 {
     cout << "Expected pangenome composition:" << endl;
     cout << this->nb0(MLEN0, MLEl0, MLEs[0]) << " Persistent genes" << endl;
     cout << this->nb1(MLEi1, MLEl1, MLEs[1]) << " Private genes" << endl;
     cout << this->nb2(MLEi2, MLEg2, MLEl2, MLEs[3], MLEs[2]) << " Mobile genes" << endl;
+}
+
+
+
+// accessory functions (must know parameters - from inference or simulations - to use them)
+
+// compute and store in a file the probability to be in each category for each gene
+void Inference::computeProbaCat(string file, double N0, double l0, double i1, double l1, double i2, double g2, double l2,
+double s_gain, double s_loss)
+{
+    vector<double> row(3, 0.);
+    vector<vector<double>> lik(nRep, row);
+    tbb::detail::d1::parallel_for(0, nRep, [&](int i)
+    {
+        // compute proba of the 3 categories
+        lik[i][0] = log(N0/nObs) + tLik.evaluateRootRep(0, i, {0,1}, 0., l0, 0., s_loss, 0);
+        lik[i][1] = logSumExp(log(i1/(l1*nObs)) + tLik.evaluateRootRep(0, i, {0,1}, 0., l1, 0., s_loss, 1),
+        log(i1/(l1*nObs)) + this->likRep1(i, l1, s_loss));
+        lik[i][2] = log(i2/nObs) + this->likRep2(i, g2, l2, s_gain, s_loss);
+        double denominateur = logSumExp(lik[i][0], logSumExp(lik[i][1], lik[i][2]));
+        lik[i][0] -= denominateur;
+        lik[i][1] -= denominateur;
+        lik[i][2] -= denominateur;
+    });
+
+    // store proba
+    fstream fileO;
+    fileO.open(file, ios::out);
+    for_each(lik.begin(), lik.end(), [&](const auto& elem)
+    {
+        fileO << elem[0] << " " << elem[1] << " " << elem[2] << endl;
+    });
+}
+// auxiliary function for expectedGains
+double Inference::sumGains(int st, double g2)
+{
+    LikFunction lf = tLik.getLikFunctions()[st];
+    if (lf.isLeaf())
+    {
+        return -1;
+    } else {
+        return exp(g2*height[st]) + sumGains(lf.getChildren().first, g2) + sumGains(lf.getChildren().second, g2);
+    }
+}
+// compute number of expected gains in the tree for Mobile genes
+double Inference::expectedGains(double g2)
+{
+    // compute expected number of gains
+    double sum,sum2,w;
+    int st;
+    sum = 0;
+    for (int rank = nLeaves-1; rank < nNodes-1; rank++) // begin at the last leaf because tree is ultrametric
+    {
+        w = height[order[rank+1]] - height[order[rank]];
+        if (w > 0.)
+        {
+            sum2 = 0.;
+            for (int j = 0; j < subtrees[rank].size(); j++)
+            {
+                st = subtrees[rank][j];
+                sum2 += w + this->sumGains(st, g2)*(exp(-g2*height[order[rank]]) - exp(-g2*height[order[rank+1]]))/g2;
+            }
+            sum += sum2;
+        }
+    }
+    return sum/H;
+}
+// compute expected time of introduction for a Private gene
+double Inference::expectedTime1(int rep, double l1, double e)
+{
+    int gainNodeID = mrca[rep];
+    if (gainNodeID != 0) // if mrca is not the root
+    {
+        /* traverse the tree from root to gainNode and for each node
+        strictly between the 2 calculate likSubtree */
+        stack<int> nodes;
+        int node = 0;
+        nodes.push(node); // add the root (ubnlike in likUpper1)
+        pair<int, int> children = tLik.getLikFunctions()[node].getChildren();
+        if (gainNodeID >= children.second) {node = children.second;}
+        else {node = children.first;}
+        while (node != gainNodeID)
+        {
+            nodes.push(node);
+            children = tLik.getLikFunctions()[node].getChildren();
+            if (gainNodeID >= children.second) {node = children.second;}
+            else {node = children.first;}
+        }
+    
+        int child;
+        double p_sub,ta,q_root;
+        double likSubtrees(0.);
+        double tmrca = height[gainNodeID];
+        double ta1 = height[nodes.top()];
+        double sumt = log(1/l1 - exp(-l1*(ta1-tmrca))*(ta1-tmrca+1/l1));
+        double sum = log(1 - exp(-l1*(ta1-tmrca)));
+        while (nodes.top() != 0)
+        {
+            children = tLik.getLikFunctions()[nodes.top()].getChildren();
+            ta = ta1;
+            nodes.pop();
+            ta1 = height[nodes.top()];
+            if (gainNodeID >= children.second) {child = children.first;}
+            else {child = children.second;}
+            likSubtrees += logSumExp(pLost(branchLength[child], l1), this->likSubtree(child, l1, e));
+            sumt = logSumExp(sumt, likSubtrees + log(exp(-l1*(ta-tmrca))*(ta-tmrca+1/l1)
+            - exp(-l1*(ta1-tmrca))*(ta1-tmrca+1/l1)));
+            sum = logSumExp(sum, likSubtrees + log(exp(-l1*(ta-tmrca)) - exp(-l1*(ta1-tmrca))));
+        }
+        children = tLik.getLikFunctions()[nodes.top()].getChildren();
+        if (gainNodeID >= children.second) {child = children.first;}
+        else {child = children.second;}
+        q_root = exp(likSubtrees + logSumExp(pLost(branchLength[child], l1), this->likSubtree(child, l1, e)));
+        return (exp(sumt)+q_root*exp(-l1*(H-tmrca))*(H-tmrca+1/l1))/(exp(sum) + q_root*exp(-l1*(H-tmrca)));
+    } else { // if mrca is the root
+        return 1/l1;
+    }
+}
+// store expected introduction times for all genes (assuming they are Private genes)
+void Inference::expectedTime1_store(string file, double l1, double e)
+{
+    vector<double> times(nRep, 0.);
+    tbb::detail::d1::parallel_for(0, nRep, [&](int i)
+    {
+        // compute expected time of arrival for type 1
+        times[i] = this->expectedTime1(i, l1, e);
+    });
+
+    // store expected time
+    fstream fileO;
+    fileO.open(file, ios::out);
+    for_each(times.begin(), times.end(), [&](const auto& elem)
+    {
+        fileO << elem << " ";
+    });
+    fileO << endl;
+}
+// return discretised times along the tree
+vector<double> Inference::expectedTime2_times()
+{
+    vector<double> times = {};
+    double w;
+    int nSub;
+    for (int rank = nLeaves-1; rank < nNodes-1; rank++) // begin at the last leaf because tree is ultrametric
+    {
+        w = height[order[rank+1]] - height[order[rank]];
+        if (w > 0.)
+        {
+            nSub = max(1,(int)ceil(w*100/H));
+            for (int i = 0; i < nSub; i++) {times.push_back(height[order[rank]]+(2*i+1)*w/(2*nSub));}
+        }
+    }
+    return times;
+}
+// compute distribution of immigration times for a Mobile genes
+vector<double> Inference::expectedTime2_aux(int rep, double g2, double l2, double s_gain, double s_loss)
+{
+    vector<double> f_val = {};
+    double w,f_aux,t,p1;
+    int nSub,st;
+    for (int rank = nLeaves-1; rank < nNodes-1; rank++) // begin at the last leaf because tree is ultrametric
+    {
+        w = height[order[rank+1]] - height[order[rank]];
+        if (w > 0.)
+        {
+            nSub = max(1,(int)ceil(w*100/H));
+            for (int i = 0; i < nSub; i++)
+            {
+                t = height[order[rank]]+(2*i+1)*w/(2*nSub);
+                f_aux = 0.;
+                for (int j = 0; j < subtrees[rank].size(); j++)
+                {
+                    st = subtrees[rank][j];
+                    if (tLik.getLikFunctions()[st].isLeaf())
+                    {
+                        f_aux += log(p0leaf(mat.getMatrix()[rep][mat.getColnames()[leavesID[st]]],
+                        t-height[st], g2, l2, s_gain, s_loss));
+                    } else {
+                        p1 = p01(t - height[st], g2, l2);
+                        f_aux += tLik.evaluateRootRep(st, rep, {1-p1,p1}, g2, l2, s_gain, s_loss, 2);
+                    }
+                }
+                f_val.push_back(exp(f_aux));
+            }
+        }
+    }
+    return f_val;
+}
+// compute and store distribution of immigration times for all genes (assuming they are Mobile genes)
+void Inference::expectedTime2_store(string file, double g2, double l2, double s_gain, double s_loss)
+{
+    vector<vector<double>> dist(nRep+1); // first line is time
+    dist[0] = this->expectedTime2_times();
+    dist[0].push_back(0);
+    tbb::detail::d1::parallel_for(0, nRep, [&](int i)
+    {
+        // compute distribution of arrival time for type 2 
+        dist[i+1] = this->expectedTime2_aux(i, g2, l2, s_gain, s_loss);
+        dist[i+1].push_back(exp(this->likRep2(i, g2, l2, s_gain, s_loss))); // last column is denominator
+    });
+
+    // store dist
+    fstream fileO;
+    fileO.open(file, ios::out);
+    for (int i = 0; i < 1; i++)
+    {
+        for (int j = 0; j < dist[0].size(); j++)
+        {
+            fileO << dist[i][j] << " ";
+        }
+        fileO << endl;
+    }
 }
